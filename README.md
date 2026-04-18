@@ -1,13 +1,59 @@
-🎓 Scholarship Distribution SystemA comprehensive, microservice-based platform designed to streamline the scholarship application process. This system bridges the gap between students and organizations by offering role-based portals, integrated coding assessments, real-time messaging, and automated lifecycle management for scholarship programs.🚀 Local Setup & InstallationThe application utilizes a multi-container Docker architecture, separating the core API, real-time communications, and code evaluation into distinct microservices for easy deployment.PrerequisitesDocker and Docker Compose installed on your machine.Git.1. Clone the Repositorygit clone [https://github.com/veervanshaj/scholarship-distribution-system.git](https://github.com/veervanshaj/scholarship-distribution-system.git)
+🎓 Scholarship Distribution System
+
+A comprehensive, microservice-based platform designed to streamline the scholarship application process. This system bridges the gap between students and organizations by offering role-based portals, integrated coding assessments, real-time messaging, and automated lifecycle management for scholarship programs.
+
+🚀 Local Setup & Installation
+
+The application utilizes a multi-container Docker architecture, separating the core API, real-time communications, and code evaluation into distinct microservices for easy deployment.
+
+Prerequisites
+
+Docker and Docker Compose installed on your machine.
+
+Git.
+
+1. Clone the Repository
+
+git clone [https://github.com/veervanshaj/scholarship-distribution-system.git](https://github.com/veervanshaj/scholarship-distribution-system.git)
 cd scholarship-distribution-system
-2. Configure Environment VariablesCreate a .env file in the root directory of the backend (or configure them on your host server) with the following essential keys:# Database configuration
+
+
+2. Configure Environment Variables
+
+Create a .env file in the root directory of the backend (or configure them on your host server) with the following essential keys:
+
+# Database configuration
 DATABASE_URL="postgresql://user:password@host:port/dbname?schema=public"
 
 # Authentication
 JWT_SECRET="your_super_secret_jwt_key_here"
-(Note: Redis URLs and internal routing are handled automatically by the docker-compose.yml network).3. Build and Run the ContainersSpin up the entire microservice architecture using Docker Compose:# Build the images and start the containers in detached mode
+
+
+(Note: Redis URLs and internal routing are handled automatically by the docker-compose.yml network).
+
+3. Build and Run the Containers
+
+Spin up the entire microservice architecture using Docker Compose:
+
+# Build the images and start the containers in detached mode
 docker-compose up --build -d
-4. Access the ServicesOnce running, the services are mapped to the following local ports:Frontend UI: http://localhost:80 (Served via Nginx)Main Backend API: http://localhost:5000WebSocket Server: ws://localhost:4001Coding Test Microservice: http://localhost:3000Useful Docker Commands:# View live logs for all running services
+
+
+4. Access the Services
+
+Once running, the services are mapped to the following local ports:
+
+Frontend UI: http://localhost:80 (Served via Nginx)
+
+Main Backend API: http://localhost:5000
+
+WebSocket Server: ws://localhost:4001
+
+Coding Test Microservice: http://localhost:3000
+
+Useful Docker Commands:
+
+# View live logs for all running services
 docker-compose logs -f
 
 # View logs for a specific service (e.g., the coding test service)
@@ -15,7 +61,11 @@ docker-compose logs -f coding_service
 
 # Stop and remove all containers, networks, and volumes
 docker-compose down
-🏗 System Architecturegraph TD
+
+
+🏗 System Architecture
+
+graph TD
     Client([Web Client]) -->|HTTP :80| Frontend[Frontend: React + Vite + Nginx]
     Client -->|REST API :5000| Backend[Main Backend API]
     Client -->|WebSocket :4001| WS[WebSocket Server]
@@ -26,4 +76,62 @@ docker-compose down
     
     Backend -->|Dispatch Code| Coding[Coding Test Microservice :3000]
     Coding -.->|Evaluation Results| Redis
-Data Flow & Component InteractionClient Request Routing: All initial user traffic hits the Nginx reverse proxy serving the compiled React frontend. API calls are directed to the Node.js Main Backend on port 5000, while chat connections upgrade to WebSockets on port 4001.Core Operations: The Main Backend API handles all standard CRUD operations (User Auth, Profile Management, Scholarship Creation). It uses Prisma ORM to interact securely with the PostgreSQL database.Real-Time Pub/Sub: The WebSocket server functions independently to handle live chat between applicants and organizations. It uses Redis as a Pub/Sub message broker so that if the WebSocket service scales to multiple instances, messages are properly broadcasted across all nodes.Asynchronous Execution: When a user submits a coding test, the Main Backend pushes the code to a BullMQ job queue stored in Redis. The isolated Coding Test Microservice continuously polls this queue, executes the code safely, and updates the application scores upon completion.🛠 Tech Stack & Features Overview1. Frontend: React + ViteStack: React.js, Vite (for fast HMR and builds), Nginx (web server/reverse proxy).Features: Provides the responsive user interfaces and dashboards for Applicants, Organizations, and Admins to interact seamlessly with the system.2. Main Backend API: Node.js + ExpressStack: Node.js, Express, PostgreSQL, Prisma ORM.Features: * Role-Based Access Control (RBAC): Distinct environments, routing, and database permissions for USER (Applicants), ORGANIZATION (Providers), and ADMIN roles.Dynamic Applicant Profiles: Students can build comprehensive academic profiles detailing their CGPA, college, degree, and personal demographics.Scholarship Lifecycle Management: Organizations can create and manage scholarships through specific states (UPCOMING, ACTIVE, CLOSED) while setting eligibility criteria, grant amounts, and minimum CGPA thresholds.System Notifications: Global and targeted alerts (INFO, ALERT, SUCCESS) keep users updated on scholarship deadlines and application status changes.3. Real-Time Server: Node.js + WebSocketsStack: Node.js, WebSockets, Redis (Pub/Sub).Features: * Applicant-Organization Chat: Runs on an isolated process to facilitate direct, real-time messaging. This allows applicants to ask clarifying questions about a scholarship and organizations to request additional information from specific applicants directly within the platform.4. Coding Test Assessor: Isolated Node.js MicroserviceStack: Node.js, BullMQ, ioredis.Features: * Integrated Technical Assessments: Organizations can toggle testMode on for specific scholarships, requiring applicants to solve a programming challenge (linked via testQuestionId) before their application is finalized.Job Queuing (BullMQ): To prevent the main backend from crashing under heavy load, code submissions are placed into a Redis-backed queue. The microservice processes these submissions asynchronously.Safe Code Execution: User-submitted code is isolated and executed safely to prevent malicious commands from affecting the host machine or database.Automated Test Case Evaluation: The microservice runs the applicant's code against a predefined set of hidden test cases (stored in questions.json).Automated Scoring: Once evaluation is complete, the service automatically updates the Application record in the database, assigning a testScore based on the number of passed test cases, which contributes to their overall totalScore.Author: Veer Vanshaj Wadehra
+
+
+Data Flow & Component Interaction
+
+Client Request Routing: All initial user traffic hits the Nginx reverse proxy serving the compiled React frontend. API calls are directed to the Node.js Main Backend on port 5000, while chat connections upgrade to WebSockets on port 4001.
+
+Core Operations: The Main Backend API handles all standard CRUD operations (User Auth, Profile Management, Scholarship Creation). It uses Prisma ORM to interact securely with the PostgreSQL database.
+
+Real-Time Pub/Sub: The WebSocket server functions independently to handle live chat between applicants and organizations. It uses Redis as a Pub/Sub message broker so that if the WebSocket service scales to multiple instances, messages are properly broadcasted across all nodes.
+
+Asynchronous Execution: When a user submits a coding test, the Main Backend pushes the code to a BullMQ job queue stored in Redis. The isolated Coding Test Microservice continuously polls this queue, executes the code safely, and updates the application scores upon completion.
+
+🛠 Tech Stack & Features Overview
+
+1. Frontend: React + Vite
+
+Stack: React.js, Vite (for fast HMR and builds), Nginx (web server/reverse proxy).
+
+Features: Provides the responsive user interfaces and dashboards for Applicants, Organizations, and Admins to interact seamlessly with the system.
+
+2. Main Backend API: Node.js + Express
+
+Stack: Node.js, Express, PostgreSQL, Prisma ORM.
+
+Features:
+
+Role-Based Access Control (RBAC): Distinct environments, routing, and database permissions for USER (Applicants), ORGANIZATION (Providers), and ADMIN roles.
+
+Dynamic Applicant Profiles: Students can build comprehensive academic profiles detailing their CGPA, college, degree, and personal demographics.
+
+Scholarship Lifecycle Management: Organizations can create and manage scholarships through specific states (UPCOMING, ACTIVE, CLOSED) while setting eligibility criteria, grant amounts, and minimum CGPA thresholds.
+
+System Notifications: Global and targeted alerts (INFO, ALERT, SUCCESS) keep users updated on scholarship deadlines and application status changes.
+
+3. Real-Time Server: Node.js + WebSockets
+
+Stack: Node.js, WebSockets, Redis (Pub/Sub).
+
+Features:
+
+Applicant-Organization Chat: Runs on an isolated process to facilitate direct, real-time messaging. This allows applicants to ask clarifying questions about a scholarship and organizations to request additional information from specific applicants directly within the platform.
+
+4. Coding Test Assessor: Isolated Node.js Microservice
+
+Stack: Node.js, BullMQ, ioredis.
+
+Features:
+
+Integrated Technical Assessments: Organizations can toggle testMode on for specific scholarships, requiring applicants to solve a programming challenge (linked via testQuestionId) before their application is finalized.
+
+Job Queuing (BullMQ): To prevent the main backend from crashing under heavy load, code submissions are placed into a Redis-backed queue. The microservice processes these submissions asynchronously.
+
+Safe Code Execution: User-submitted code is isolated and executed safely to prevent malicious commands from affecting the host machine or database.
+
+Automated Test Case Evaluation: The microservice runs the applicant's code against a predefined set of hidden test cases (stored in questions.json).
+
+Automated Scoring: Once evaluation is complete, the service automatically updates the Application record in the database, assigning a testScore based on the number of passed test cases, which contributes to their overall totalScore.
+
+Author: Veer Vanshaj Wadehra
